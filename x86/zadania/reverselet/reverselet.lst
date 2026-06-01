@@ -1,0 +1,96 @@
+     1                                  section .text
+     2                                      global reverselet
+     3                                  
+     4                                  reverselet:
+     5 00000000 55                          push ebp
+     6 00000001 89E5                        mov ebp, esp
+     7                                  
+     8 00000003 53                          push ebx
+     9 00000004 56                          push esi
+    10                                  
+    11 00000005 8B4508                      mov eax, [ebp + 8] ; wskaźnik na input
+    12 00000008 B100                        mov cl, 0 ; counter długości input
+    13 0000000A B500                        mov ch, 0 ; counter liter
+    14                                  
+    15                                  count_len_dig:
+    16 0000000C 8A18                        mov bl, [eax]
+    17 0000000E 40                          inc eax
+    18 0000000F 84DB                        test bl, bl
+    19 00000011 7424                        jz fin_analyse
+    20 00000013 80FB41                      cmp bl, 'A'
+    21 00000016 720B                        jb not_letter
+    22 00000018 80FB5A                      cmp bl, 'Z'
+    23 0000001B 770A                        ja second_check
+    24 0000001D FEC1                        inc cl
+    25 0000001F FEC5                        inc ch
+    26 00000021 EBE9                        jmp count_len_dig
+    27                                  
+    28                                  not_letter:
+    29 00000023 FEC1                        inc cl
+    30 00000025 EBE5                        jmp count_len_dig
+    31                                  
+    32                                  second_check:
+    33 00000027 80FB61                      cmp bl, 'a'
+    34 0000002A 72F7                        jb not_letter
+    35 0000002C 80FB7A                      cmp bl, 'z'
+    36 0000002F 77F2                        ja not_letter
+    37 00000031 FEC1                        inc cl
+    38 00000033 FEC5                        inc ch
+    39 00000035 EBD5                        jmp count_len_dig
+    40                                  
+    41                                  fin_analyse:
+    42 00000037 8B4508                      mov eax, [ebp + 8] ; pointer od lewej
+    43 0000003A FEC9                        dec cl
+    44 0000003C 0FB6D1                      movzx edx, cl
+    45 0000003F 8B7508                      mov esi, [ebp + 8]
+    46 00000042 01D6                        add esi, edx ; pointer po prawej
+    47                                  
+    48                                  main_loop:
+    49 00000044 8A18                        mov bl, [eax]
+    50 00000046 40                          inc eax
+    51 00000047 84DB                        test bl, bl
+    52 00000049 743F                        jz fin
+    53 0000004B 80FD01                      cmp ch, 1 ; to sprawdzenie pozwala na wskazanie programowi, czy coś jeszcze pozostało do zamiany, czy nie.
+    54 0000004E 763A                        jbe fin ; jak tak to skończ program
+    55 00000050 80FB41                      cmp bl, 'A'
+    56 00000053 72EF                        jb main_loop ; przechodzimy dalej, nie modyfikuje nic.
+    57 00000055 80FB5A                      cmp bl, 'Z'
+    58 00000058 7702                        ja lower_check
+    59 0000005A EB0A                        jmp letter_search
+    60                                  
+    61                                  lower_check:
+    62 0000005C 80FB61                      cmp bl, 'a'
+    63 0000005F 72E3                        jb main_loop
+    64 00000061 80FB7A                      cmp bl, 'z'
+    65 00000064 77DE                        ja main_loop
+    66                                  
+    67                                  letter_search:
+    68 00000066 8A3E                        mov bh, [esi]
+    69 00000068 4E                          dec esi
+    70 00000069 80FF41                      cmp bh, 'A'
+    71 0000006C 72F8                        jb letter_search
+    72 0000006E 80FF5A                      cmp bh, 'Z'
+    73 00000071 7702                        ja backwards_lower_check
+    74 00000073 EB0A                        jmp switch
+    75                                  
+    76                                  backwards_lower_check:
+    77 00000075 80FF61                      cmp bh, 'a'
+    78 00000078 72EC                        jb letter_search
+    79 0000007A 80FF7A                      cmp bh, 'z'
+    80 0000007D 77E7                        ja letter_search
+    81                                  
+    82                                  switch:
+    83 0000007F 885E01                      mov [esi + 1], bl
+    84 00000082 8878FF                      mov [eax - 1], bh
+    85 00000085 80ED02                      sub ch, 2
+    86 00000088 EBBA                        jmp main_loop
+    87                                  
+    88                                  
+    89                                  fin:
+    90 0000008A 8B4508                      mov eax, [ebp + 8]
+    91                                  
+    92 0000008D 5E                          pop esi
+    93 0000008E 5B                          pop ebx
+    94                                  
+    95 0000008F 5D                          pop ebp
+    96 00000090 C3                          ret

@@ -1,0 +1,97 @@
+     1                                  section .text
+     2                                      global remlastnum
+     3                                  
+     4                                  remlastnum:
+     5 00000000 55                          push ebp
+     6 00000001 89E5                        mov ebp, esp
+     7                                  
+     8 00000003 56                          push esi
+     9 00000004 53                          push ebx
+    10                                  
+    11 00000005 8B4508                      mov eax, [ebp + 8] ; pointer na string (czytający)
+    12 00000008 8B7508                      mov esi, [ebp + 8] ; pointer na string (zapisujący)
+    13 0000000B B900000000                  mov ecx, 0 ; counter ilości sekwencji
+    14                                  
+    15                                  start:
+    16 00000010 8A18                        mov bl, [eax]
+    17 00000012 40                          inc eax
+    18 00000013 84DB                        test bl, bl
+    19 00000015 7420                        jz fin_analyse
+    20 00000017 80FB30                      cmp bl, '0'
+    21 0000001A 72F4                        jb start
+    22 0000001C 80FB39                      cmp bl, '9'
+    23 0000001F 77EF                        ja start
+    24 00000021 EB00                        jmp start_sequence
+    25                                  
+    26                                  start_sequence:
+    27 00000023 41                          inc ecx
+    28                                  
+    29                                  sequence:
+    30 00000024 8A18                        mov bl, [eax]
+    31 00000026 40                          inc eax
+    32 00000027 84DB                        test bl, bl
+    33 00000029 740C                        jz fin_analyse
+    34 0000002B 80FB30                      cmp bl, '0'
+    35 0000002E 72E0                        jb start
+    36 00000030 80FB39                      cmp bl, '9'
+    37 00000033 77DB                        ja start
+    38 00000035 EBED                        jmp sequence
+    39                                  
+    40                                  fin_analyse:
+    41 00000037 8B4508                      mov eax, [ebp + 8]
+    42                                  
+    43                                  write:
+    44 0000003A 8A18                        mov bl, [eax]
+    45 0000003C 40                          inc eax
+    46 0000003D 84DB                        test bl, bl
+    47 0000003F 743F                        jz fin
+    48 00000041 80FB30                      cmp bl, '0'
+    49 00000044 7207                        jb save
+    50 00000046 80FB39                      cmp bl, '9'
+    51 00000049 7702                        ja save
+    52 0000004B EB05                        jmp digit
+    53                                  
+    54                                  save:
+    55 0000004D 881E                        mov [esi], bl
+    56 0000004F 46                          inc esi
+    57 00000050 EBE8                        jmp write
+    58                                  
+    59                                  digit:
+    60 00000052 49                          dec ecx
+    61                                  
+    62                                  dig_sequence:
+    63 00000053 85C9                        test ecx, ecx
+    64 00000055 7416                        jz last_sequence
+    65 00000057 881E                        mov [esi], bl
+    66 00000059 46                          inc esi
+    67 0000005A 8A18                        mov bl, [eax]
+    68 0000005C 40                          inc eax
+    69 0000005D 84DB                        test bl, bl
+    70 0000005F 741F                        jz fin
+    71 00000061 80FB30                      cmp bl, '0'
+    72 00000064 72E7                        jb save
+    73 00000066 80FB39                      cmp bl, '9'
+    74 00000069 77E2                        ja save
+    75 0000006B EBE6                        jmp dig_sequence
+    76                                  
+    77                                  last_sequence:
+    78 0000006D 8A18                        mov bl, [eax]
+    79 0000006F 40                          inc eax
+    80 00000070 84DB                        test bl, bl
+    81 00000072 740C                        jz fin
+    82 00000074 80FB30                      cmp bl, '0'
+    83 00000077 72D4                        jb save
+    84 00000079 80FB39                      cmp bl, '9'
+    85 0000007C 77CF                        ja save
+    86 0000007E EBED                        jmp last_sequence
+    87                                  
+    88                                  
+    89                                  fin:
+    90 00000080 8B4508                      mov eax, [ebp + 8]
+    91 00000083 881E                        mov [esi], bl
+    92                                  
+    93 00000085 5B                          pop ebx
+    94 00000086 5E                          pop esi
+    95                                  
+    96 00000087 5D                          pop ebp
+    97 00000088 C3                          ret

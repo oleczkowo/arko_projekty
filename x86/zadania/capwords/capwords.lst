@@ -1,0 +1,55 @@
+     1                                  section .text
+     2                                      global capwords
+     3                                  
+     4                                  capwords:
+     5 00000000 55                          push ebp
+     6 00000001 89E5                        mov ebp, esp
+     7                                  
+     8 00000003 53                          push ebx
+     9                                  
+    10 00000004 8B4508                      mov eax, [ebp + 8] ; pointer czytający input / zapisujący input
+    11 00000007 B101                        mov cl, 1 ; flaga (sprawdza, czy napotkano literę po spacji / w pierwszym słowie pliku). Capitalize zmienia cl na 0.
+    12                                  
+    13                                  main_loop:
+    14 00000009 8A18                        mov bl, [eax] ; ładuj bajt do bl
+    15 0000000B 40                          inc eax ; inkrementuj eax
+    16 0000000C 84DB                        test bl, bl ; sprawdź czy nullptr
+    17 0000000E 7433                        jz fin ; skończ program jak nullptr.
+    18 00000010 84C9                        test cl, cl ; sprawdź czy cl 0
+    19 00000012 7507                        jnz first_letter ; jak tak to sprawdź czy spotkasz pierwszą literę.
+    20 00000014 80FB20                      cmp bl, ' ' ; sprawdź czy spacja
+    21 00000017 7426                        je new_word ; jak tak, będziemy szukać nowego słowa
+    22 00000019 EBEE                        jmp main_loop ; skocz do pętli z powrotem
+    23                                  
+    24                                  first_letter:
+    25 0000001B 80FB41                      cmp bl, 'A' ; porównaj z A
+    26 0000001E 721D                        jb not_a_letter ; jak mniejszy od A to nie jest litera
+    27 00000020 80FB5A                      cmp bl, 'Z' ; porównaj z Z
+    28 00000023 7704                        ja lower_check ; jeżeli większy od Z, sprawdź czy to nie jest mniejsza litera
+    29 00000025 30C9                        xor cl, cl ; w innym wypadku mamy do czynienia z pierwszą literą w słowie, która od razu jest wielka.
+    30 00000027 EBE0                        jmp main_loop
+    31                                  
+    32                                  lower_check:
+    33 00000029 80FB61                      cmp bl, 'a' ; jak znak większy od Z i mniejszy od a, nie jest literą
+    34 0000002C 720F                        jb not_a_letter
+    35 0000002E 80FB7A                      cmp bl, 'z' ; jak znak większy od z, nie jest literą
+    36 00000031 770A                        ja not_a_letter
+    37 00000033 30C9                        xor cl, cl
+    38 00000035 80EB20                      sub bl, 32
+    39 00000038 8858FF                      mov [eax - 1], bl
+    40 0000003B EBCC                        jmp main_loop
+    41                                  
+    42                                  not_a_letter:
+    43 0000003D EBCA                        jmp main_loop
+    44                                  
+    45                                  new_word:
+    46 0000003F B101                        mov cl, 1
+    47 00000041 EBC6                        jmp main_loop
+    48                                  
+    49                                  fin:
+    50 00000043 8B4508                      mov eax, [ebp + 8]
+    51                                  
+    52 00000046 5B                          pop ebx
+    53                                  
+    54 00000047 5D                          pop ebp
+    55 00000048 C3                          ret

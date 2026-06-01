@@ -1,0 +1,49 @@
+     1                                  section .text
+     2                                  global rmrngasm
+     3                                  
+     4                                  rmrngasm:
+     5                                      ; standardowy epilog procedury x86
+     6 00000000 55                          push ebp
+     7 00000001 89E5                        mov ebp, esp
+     8 00000003 56                          push esi
+     9 00000004 53                          push ebx
+    10 00000005 57                          push edi
+    11                                  
+    12 00000006 8B4508                      mov eax, [ebp + 8] ; read pointer
+    13 00000009 8B7508                      mov esi, [ebp + 8] ; write pointer
+    14 0000000C 8A4D0C                      mov cl, [ebp + 12] ; 1 znak
+    15 0000000F 8A6D10                      mov ch, [ebp + 16] ; 2 znak
+    16 00000012 8A5D14                      mov bl, [ebp + 20] ; znak analizowany
+    17                                  
+    18                                  main_loop:
+    19 00000015 8A18                        mov bl, byte [eax] ; wstaw do bl znak analizowany
+    20 00000017 40                          inc eax
+    21 00000018 80FB00                      cmp bl, 0 ; sprawdź, czy nullptr
+    22 0000001B 7411                        je fin ; jak tak, przejdź do fin
+    23                                  
+    24 0000001D 38CB                        cmp bl, cl ; porównaj z podanym znakiem
+    25 0000001F 7606                        jbe not_delete ; jeżeli mniejsze/równe, nie usuwaj
+    26                                  
+    27 00000021 38EB                        cmp bl, ch ; porównaj z drugim znakiem
+    28 00000023 7D02                        jge not_delete ; jeżeli większe/równe, nie usuwaj
+    29                                  
+    30                                      ; mov byte [eax], 32, poprzednia wersja
+    31 00000025 EBEE                        jmp main_loop ; nie zapisuj, leć dalej.
+    32                                  
+    33                                  not_delete:
+    34 00000027 88DA                        mov dl, bl
+    35 00000029 8816                        mov [esi], dl ; zapisz tam, gdzie wskazuje pointer
+    36 0000002B 46                          inc esi ; inkrementuj wskazik
+    37 0000002C EBE7                        jmp main_loop ; wroc do loopa
+    38                                  
+    39                                  fin:
+    40 0000002E 48                          dec eax
+    41 0000002F 88DA                        mov dl, bl
+    42 00000031 8816                        mov [esi], dl
+    43 00000033 8B4508                      mov eax, [ebp + 8]
+    44                                  
+    45 00000036 5F                          pop edi
+    46 00000037 5B                          pop ebx
+    47 00000038 5E                          pop esi
+    48 00000039 5D                          pop ebp
+    49 0000003A C3                          ret

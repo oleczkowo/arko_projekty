@@ -1,0 +1,323 @@
+     1                                  default rel
+     2                                  
+     3                                  section .text
+     4                                      global wu_line
+     5                                  
+     6                                  wu_line:
+     7 00000000 55                          push    ebp
+     8 00000001 89E5                        mov     ebp, esp
+     9 00000003 83EC08                      sub     esp, 8 ; two local variables : gradient, and a flag
+    10                                  
+    11 00000006 53                          push    ebx
+    12 00000007 57                          push    edi
+    13 00000008 56                          push    esi
+    14                                  
+    15                                  wu_start:
+    16 00000009 8B4514                      mov     eax, [ebp + 20] ; all arguments are passed as integers
+    17 0000000C 8B4D0C                      mov     ecx, [ebp + 12]
+    18 0000000F C745F800000000              mov     DWORD [ebp-8], 0
+    19 00000016 39C1                        cmp     ecx, eax ; compare xe to xs
+    20 00000018 7523                        jne     wu_select_direction
+    21                                  
+    22 0000001A 8B4518                      mov     eax, [ebp + 24]
+    23 0000001D 8B4D10                      mov     ecx, [ebp + 16]
+    24 00000020 39C8                        cmp     eax, ecx ; compare ye to ys
+    25 00000022 7519                        jne     wu_select_direction
+    26                                      ; single point provided by four arguments, so draw a pixel
+    27 00000024 FF751C                      push    DWORD [ebp + 28]
+    28 00000027 FF7510                      push    DWORD [ebp + 16]
+    29 0000002A FF750C                      push    DWORD [ebp + 12]
+    30 0000002D FF7508                      push    DWORD [ebp + 8]
+    31 00000030 E8DA010000                  call    set_pixel
+    32 00000035 83C410                      add     esp, 16
+    33                                  
+    34 00000038 E9BE010000                  jmp     end
+    35                                  
+    36                                  wu_select_direction:
+    37 0000003D 8B4514                      mov     eax, [ebp + 20] ; load xe
+    38 00000040 8B4D18                      mov     ecx, [ebp + 24] ; load ye
+    39 00000043 2B450C                      sub     eax, [ebp + 12] ; xe - xs
+    40 00000046 2B4D10                      sub     ecx, [ebp + 16] ; ye - ys
+    41                                  
+    42                                      ; here to get absolute of (xe - xs) we have to do
+    43                                      ; ((xe - xs XOR (xe - xs)>>31)) - (xe - xs>>31)
+    44                                  
+    45 00000049 89C6                        mov     esi, eax ; store xe - xs in esi
+    46 0000004B 89CF                        mov     edi, ecx ; store ye - ys in edi
+    47                                  
+    48 0000004D C1FE1F                      sar     esi, 0x1F ; shift (xe - xs) right by 31 (0x1F)
+    49 00000050 31F0                        xor     eax, esi ; (xe - xs) XOR (xe-xs)>>31
+    50 00000052 29F0                        sub     eax, esi ; abs(xe - xs)
+    51                                  
+    52 00000054 C1FF1F                      sar     edi, 0x1F ; shift (ye - ys) right by 31
+    53 00000057 31F9                        xor     ecx, edi ; (ye - ys) XOR (ye-ys)>>31
+    54 00000059 29F9                        sub     ecx, edi ; abs(ye - ys)
+    55                                  
+    56 0000005B 39C8                        cmp     eax, ecx ; comparison of these two absolute values
+    57 0000005D 0F8277010000                jb      vertical ; if abs(dx) < abs(dy), use vertical function
+    58 00000063 31C9                        xor     ecx, ecx
+    59                                  
+    60                                  swap_check_start_end:
+    61 00000065 8B450C                      mov     eax, [ebp + 12] ; load starting point x or y
+    62 00000068 3B4514                      cmp     eax, [ebp + 20] ; load ending point x or y
+    63 0000006B 7218                        jb      is_positive_dx ; if xs/ys < xe/ye, don't swap start point with end point
+    64                                  
+    65                                      ; else, swap starting point with ending point
+    66                                  
+    67 0000006D 8B450C                      mov     eax, [ebp + 12]
+    68 00000070 8B5D14                      mov     ebx, [ebp + 20]
+    69 00000073 894514                      mov     [ebp + 20], eax
+    70 00000076 895D0C                      mov     [ebp + 12], ebx
+    71                                  
+    72 00000079 8B4510                      mov     eax, [ebp + 16]
+    73 0000007C 8B5D18                      mov     ebx, [ebp + 24]
+    74 0000007F 894518                      mov     [ebp + 24], eax
+    75 00000082 895D10                      mov     [ebp + 16], ebx
+    76                                  
+    77                                  ; I have to take into account, that xs might still be bigger than xe, even after swapping for fe. vertical ye < ys.
+    78                                  ; This would mean, that the gradient would be negative, which is bad considering I'm working on unsigned integers.
+    79                                  
+    80                                  is_positive_dx:
+    81 00000085 8B450C                      mov     eax, [ebp + 12]
+    82 00000088 8B5D14                      mov     ebx, [ebp + 20]
+    83 0000008B 39D8                        cmp     eax, ebx ; if xs > xe, dx has to be xs-xe instead of xe-xs.
+    84 0000008D 720D                        jb     calculate_dx
+    85 0000008F 29D8                        sub     eax, ebx ; xs - xe
+    86 00000091 89C6                        mov     esi, eax
+    87 00000093 8B45F8                      mov     eax, [ebp - 8]
+    88 00000096 40                          inc     eax
+    89 00000097 8945F8                      mov     [ebp - 8], eax
+    90 0000009A EB08                        jmp     is_positive_dy
+    91                                  
+    92                                  ; note: it is impossible to have both dx and dy negative, since there is a
+    93                                  ; check function that might swap starting point with endpoint before that.
+    94                                  
+    95                                  calculate_dx:
+    96 0000009C 8B4514                      mov     eax, [ebp + 20] ; load xe
+    97 0000009F 2B450C                      sub     eax, [ebp + 12] ; xe - xs
+    98 000000A2 89C6                        mov     esi, eax ; store dx (xe-xs) in esi
+    99                                  
+   100                                  is_positive_dy:
+   101 000000A4 8B4510                      mov     eax, [ebp + 16]
+   102 000000A7 8B5D18                      mov     ebx, [ebp + 24]
+   103 000000AA 39D8                        cmp     eax, ebx
+   104 000000AC 720D                        jb     calculate_dy
+   105 000000AE 29D8                        sub     eax, ebx
+   106 000000B0 89C7                        mov     edi, eax
+   107 000000B2 8B45F8                      mov     eax, [ebp - 8]
+   108 000000B5 40                          inc     eax
+   109 000000B6 8945F8                      mov     [ebp - 8], eax
+   110 000000B9 EB08                        jmp     calculate_gradient
+   111                                  
+   112                                  calculate_dy:
+   113 000000BB 8B4518                      mov     eax, [ebp + 24] ; load ye
+   114 000000BE 2B4510                      sub     eax, [ebp + 16] ; ye - ys
+   115 000000C1 89C7                        mov     edi, eax ; store dy (ye-ys) in edi
+   116                                  
+   117                                  calculate_gradient:
+   118 000000C3 83FE00                      cmp     esi, 0 ; if dx is 0
+   119 000000C6 0F8437010000                je      gradient1 ; make gradient equal to 1
+   120 000000CC 89F8                        mov     eax, edi ; load dy from edi to eax
+   121 000000CE C1E010                      sal     eax, 0x10 ; convert dy to 16.16
+   122 000000D1 89F3                        mov     ebx, esi ; load dx to ebx
+   123 000000D3 C1E310                      sal     ebx, 0x10 ; convert dx to 16.16
+   124 000000D6 0FA4C210                    shld    edx, eax, 0x10 ; prepare for division
+   125 000000DA F7FB                        idiv    DWORD ebx ; divide
+   126 000000DC 8945FC                      mov     [ebp - 4], eax ; store gradient = dy/dx in [ebp-4]
+   127                                  
+   128                                  compute_slope:
+   129 000000DF 8B451C                      mov     eax, [ebp + 28] ; int of color (fe. 0x000000FF)
+   130 000000E2 C1E010                      sal     eax, 0x10 ; now it will be fe. 0x00FF0000
+   131 000000E5 89451C                      mov     [ebp + 28], eax ; store it back to color [ebp+28]
+   132                                  
+   133 000000E8 8B450C                      mov     eax, [ebp + 12] ; load xs/ys to eax
+   134                                  
+   135 000000EB 8B5D10                      mov     ebx, [ebp + 16] ; load y0 (yf = y0)
+   136 000000EE C1E310                      sal     ebx, 0x10 ; turn yf to a 16.16 fixed point number
+   137                                  
+   138 000000F1 84C9                        test    cl, cl
+   139 000000F3 756C                        jnz     vertical_loop
+   140                                  
+   141                                  horizontal_loop:
+   142                                      ; eax - xs integer value
+   143                                      ; ebx - yf formatted to 16.16
+   144                                      ; ecx - (int)yf (truncated)
+   145                                      ; edx - fract_part(yf)
+   146                                      ; edi - 1 - fract_part(yf)
+   147                                      ; esi - color calculations (color1 and color2)
+   148                                      ; [ebp - 4] - gradient formatted to 16.16
+   149                                      ; [ebp + 28] - color in 16.16 format
+   150                                  
+   151 000000F5 3B4514                      cmp     eax, [ebp + 20] ; compare xs to xe
+   152 000000F8 0F87FD000000                ja      end ; if above, end program
+   153                                  
+   154 000000FE 89D9                        mov     ecx, ebx ; load 16.16 yf to ecx
+   155 00000100 C1F910                      sar     ecx, 0x10 ; truncate to (int)yf
+   156                                  
+   157 00000103 89DA                        mov     edx, ebx ; load 16.16 yf to edx
+   158 00000105 81E2FFFF0000                and     edx, 0x0000FFFF
+   159                                  
+   160 0000010B BF00000100                  mov     edi, 0x00010000 ; load 16.16 1 representation into edi
+   161 00000110 29D7                        sub     edi, edx ; 1 - fract_part(yf) = rfract_part(yf)
+   162                                  
+   163 00000112 8B751C                      mov     esi, [ebp + 28] ; load 16.16 color into esi
+   164 00000115 C1FE10                      sar     esi, 16
+   165 00000118 0FAFF7                      imul    esi, edi ; multiply color * rfract_part(yf)
+   166 0000011B C1FE10                      sar     esi, 16
+   167 0000011E 81E6FF000000                and     esi, 0x000000FF
+   168                                  
+   169 00000124 56                          push    esi ; color argument
+   170 00000125 51                          push    ecx ; yf
+   171 00000126 50                          push    eax ; xs
+   172 00000127 FF7508                      push    DWORD [ebp+8] ; push the pointer to bitmap
+   173 0000012A E8E0000000                  call    set_pixel
+   174 0000012F 83C410                      add     esp, 16
+   175                                  
+   176 00000132 41                          inc     ecx
+   177                                  
+   178 00000133 8B751C                      mov     esi, [ebp + 28] ; load 16.16 color into esi
+   179 00000136 C1FE10                      sar     esi, 16
+   180 00000139 0FAFF2                      imul    esi, edx ; multiply color * fract_part(yf)
+   181 0000013C C1FE10                      sar     esi, 16
+   182 0000013F 81E6FF000000                and     esi, 0xFF
+   183                                  
+   184 00000145 56                          push    esi ; color argument
+   185 00000146 51                          push    ecx ; yf
+   186 00000147 50                          push    eax ; xs
+   187 00000148 FF7508                      push    DWORD [ebp+8] ; push the pointer to bitmap
+   188 0000014B E8BF000000                  call    set_pixel
+   189 00000150 83C410                      add     esp, 16
+   190                                  
+   191 00000153 49                          dec     ecx
+   192 00000154 40                          inc     eax
+   193                                  
+   194 00000155 8B75F8                      mov     esi, [ebp-8]
+   195 00000158 85F6                        test    esi, esi
+   196 0000015A 7571                        jnz     hor_negative_gradient
+   197                                  
+   198 0000015C 035DFC                      add     ebx, [ebp - 4]
+   199                                  
+   200 0000015F EB94                        jmp     horizontal_loop
+   201                                  
+   202                                  vertical_loop:
+   203 00000161 3B4514                      cmp     eax, [ebp + 20] ; compare xs to xe
+   204 00000164 0F8791000000                ja      end ; if above, end program
+   205                                  
+   206 0000016A 89D9                        mov     ecx, ebx ; load 16.16 yf to ecx
+   207 0000016C C1F910                      sar     ecx, 0x10 ; truncate to (int)yf
+   208                                  
+   209 0000016F 89DA                        mov     edx, ebx ; load 16.16 yf to edx
+   210 00000171 81E2FFFF0000                and     edx, 0x0000FFFF
+   211                                  
+   212 00000177 BF00000100                  mov     edi, 0x00010000 ; load 16.16 1 representation into edi
+   213 0000017C 29D7                        sub     edi, edx ; 1 - fract_part(yf) = rfract_part(yf)
+   214                                  
+   215 0000017E 8B751C                      mov     esi, [ebp + 28] ; load 16.16 color into esi
+   216 00000181 C1FE10                      sar     esi, 16
+   217 00000184 0FAFF7                      imul    esi, edi ; multiply color * rfract_part(yf)
+   218 00000187 C1FE10                      sar     esi, 16
+   219 0000018A 81E6FF000000                and     esi, 0x000000FF
+   220                                  
+   221 00000190 56                          push    esi ; color argument
+   222 00000191 50                          push    eax ; inverted arguments
+   223 00000192 51                          push    ecx
+   224 00000193 FF7508                      push    DWORD [ebp+8] ; push the pointer to bitmap
+   225 00000196 E874000000                  call    set_pixel
+   226 0000019B 83C410                      add     esp, 16
+   227                                  
+   228 0000019E 41                          inc     ecx
+   229                                  
+   230 0000019F 8B751C                      mov     esi, [ebp + 28] ; load 16.16 color into esi
+   231 000001A2 C1FE10                      sar     esi, 16
+   232 000001A5 0FAFF2                      imul    esi, edx ; multiply color * fract_part(yf)
+   233 000001A8 C1FE10                      sar     esi, 16
+   234 000001AB 81E6FF000000                and     esi, 0xFF
+   235                                  
+   236 000001B1 56                          push    esi ; color argument
+   237 000001B2 50                          push    eax
+   238 000001B3 51                          push    ecx
+   239 000001B4 FF7508                      push    DWORD [ebp+8] ; push the pointer to bitmap
+   240 000001B7 E853000000                  call    set_pixel
+   241 000001BC 83C410                      add     esp, 16
+   242                                  
+   243 000001BF 49                          dec     ecx
+   244 000001C0 40                          inc     eax
+   245                                  
+   246 000001C1 8B75F8                      mov     esi, [ebp-8]
+   247 000001C4 85F6                        test    esi, esi
+   248 000001C6 750D                        jnz     ver_negative_gradient
+   249                                  
+   250 000001C8 035DFC                      add     ebx, [ebp - 4]
+   251                                  
+   252 000001CB EB94                        jmp     vertical_loop
+   253                                  
+   254                                  hor_negative_gradient:
+   255 000001CD 2B5DFC                      sub     ebx, [ebp-4]
+   256 000001D0 E920FFFFFF                  jmp     horizontal_loop
+   257                                  
+   258                                  ver_negative_gradient:
+   259 000001D5 2B5DFC                      sub     ebx, [ebp-4]
+   260 000001D8 EB87                        jmp     vertical_loop
+   261                                  
+   262                                  
+   263                                  vertical:
+   264                                      ; swap xs with ys
+   265 000001DA 8B450C                      mov     eax, [ebp + 12] ; load xs into eax
+   266 000001DD 8B4D10                      mov     ecx, [ebp + 16] ; load ys into ecx
+   267 000001E0 894510                      mov     [ebp + 16], eax ; load xs from eax into ys
+   268 000001E3 894D0C                      mov     [ebp + 12], ecx ; load ys from ecx into xs
+   269                                      ; swap xe with ye
+   270 000001E6 8B4514                      mov     eax, [ebp + 20] ; load xe into eax
+   271 000001E9 8B4D18                      mov     ecx, [ebp + 24] ; load ye into ecx
+   272 000001EC 894518                      mov     [ebp + 24], eax ; load xe from eax into ye
+   273 000001EF 894D14                      mov     [ebp + 20], ecx ; load ye from ecx into ys
+   274                                      ; zero ecx to use as a flag
+   275 000001F2 31C9                        xor     ecx, ecx
+   276 000001F4 FEC1                        inc     cl
+   277 000001F6 E96AFEFFFF                  jmp     swap_check_start_end
+   278                                  
+   279                                  end:
+   280 000001FB 5E                          pop    esi
+   281 000001FC 5F                          pop    edi
+   282 000001FD 5B                          pop    ebx
+   283                                  
+   284 000001FE 83C408                      add    esp, 8
+   285 00000201 5D                          pop    ebp
+   286 00000202 C3                          ret
+   287                                  
+   288                                  gradient1:
+   289 00000203 C745FC00000100              mov     DWORD [ebp - 4], 0x00010000
+   290 0000020A E9D0FEFFFF                  jmp     compute_slope
+   291                                  
+   292                                  set_pixel: ; C declaration: set_pixel(unsigned char* bmp, uint32_t x, uint32_t y, uint32_t color)
+   293 0000020F 55                          push    ebp
+   294 00000210 89E5                        mov     ebp, esp
+   295                                  
+   296 00000212 51                          push    ecx
+   297 00000213 53                          push    ebx
+   298 00000214 52                          push    edx
+   299 00000215 50                          push    eax
+   300                                  
+   301 00000216 8B4508                      mov     eax, [ebp+8] ; pointer at the bmp header
+   302 00000219 8B5812                      mov     ebx, [eax+18] ; width of the image is stored at this offset in the bmp header
+   303 0000021C 8B4D10                      mov     ecx, [ebp+16] ; provided y value
+   304                                  
+   305 0000021F 83C303                      add     ebx, 3 ; add 3 to width
+   306 00000222 83E3FC                      and     ebx, 0xFFFFFFFC ; mask with ~3
+   307 00000225 0FAFD9                      imul    ebx, ecx ; width * y
+   308                                  
+   309 00000228 8B550C                      mov     edx, [ebp+12] ; x value
+   310 0000022B 01D3                        add     ebx, edx ; add x value to ebx
+   311 0000022D 01C3                        add     ebx, eax ; add ebx value to pointer to bitmap
+   312 0000022F 81C336040000                add     ebx, 54 + 1024 ; offset for 8bpp files
+   313                                  
+   314 00000235 8B5514                      mov     edx, [ebp+20] ; color value
+   315 00000238 668913                      mov     [ebx], dx ; write this color to pixel stored in ebx
+   316                                  
+   317 0000023B 58                          pop     eax
+   318 0000023C 5A                          pop     edx
+   319 0000023D 5B                          pop     ebx
+   320 0000023E 59                          pop     ecx
+   321                                  
+   322 0000023F C9                          leave
+   323 00000240 C3                          ret

@@ -1,0 +1,52 @@
+     1                                  section .text
+     2                                      global replnum
+     3                                  
+     4                                  replnum:
+     5 00000000 55                          push ebp
+     6 00000001 89E5                        mov ebp, esp
+     7                                  
+     8 00000003 56                          push esi
+     9 00000004 53                          push ebx
+    10                                  
+    11 00000005 8B4508                      mov eax, [ebp + 8] ; ptr na inputstr
+    12 00000008 8B7508                      mov esi, [ebp + 8] ; ptr na inputstr (zapisujący)
+    13 0000000B 8A4D0C                      mov cl, [ebp + 12] ; char z zadania
+    14                                  
+    15                                  start:
+    16 0000000E 8A18                        mov bl, [eax]
+    17 00000010 40                          inc eax
+    18 00000011 84DB                        test bl, bl
+    19 00000013 7427                        jz fin
+    20 00000015 80FB30                      cmp bl, '0'
+    21 00000018 721D                        jb not_digit
+    22 0000001A 80FB39                      cmp bl, '9'
+    23 0000001D 7718                        ja not_digit
+    24 0000001F 880E                        mov [esi], cl
+    25 00000021 46                          inc esi
+    26 00000022 EB00                        jmp digit_seq
+    27                                  
+    28                                  digit_seq:
+    29 00000024 8A18                        mov bl, [eax]
+    30 00000026 40                          inc eax
+    31 00000027 84DB                        test bl, bl
+    32 00000029 7411                        jz fin
+    33 0000002B 80FB30                      cmp bl, '0'
+    34 0000002E 7207                        jb not_digit
+    35 00000030 80FB39                      cmp bl, '9'
+    36 00000033 7702                        ja not_digit
+    37 00000035 EBED                        jmp digit_seq
+    38                                  
+    39                                  not_digit:
+    40 00000037 881E                        mov [esi], bl
+    41 00000039 46                          inc esi
+    42 0000003A EBD2                        jmp start
+    43                                  
+    44                                  
+    45                                  fin:
+    46 0000003C 881E                        mov [esi], bl
+    47 0000003E 8B4508                      mov eax, [ebp + 8]
+    48 00000041 5B                          pop ebx
+    49 00000042 5E                          pop esi
+    50                                  
+    51 00000043 5D                          pop ebp
+    52 00000044 C3                          ret

@@ -1,0 +1,40 @@
+     1                                  section .text
+     2                                      global leaverng
+     3                                  
+     4                                  leaverng:
+     5 00000000 55                          push ebp
+     6 00000001 89E5                        mov ebp, esp
+     7                                  
+     8 00000003 53                          push ebx
+     9 00000004 56                          push esi
+    10                                  
+    11 00000005 8B4508                      mov eax, [ebp + 8] ; input str
+    12 00000008 8B7508                      mov esi, [ebp + 8]
+    13 0000000B 8A4D0C                      mov cl, [ebp + 12] ; pierwszy znak
+    14 0000000E 8A6D10                      mov ch, [ebp + 16] ; drugi znak
+    15                                  
+    16                                  main_loop:
+    17 00000011 8A18                        mov bl, [eax]
+    18 00000013 40                          inc eax
+    19 00000014 84DB                        test bl, bl
+    20 00000016 740F                        jz fin
+    21 00000018 38CB                        cmp bl, cl
+    22 0000001A 7209                        jb not_in_range
+    23 0000001C 38EB                        cmp bl, ch
+    24 0000001E 7705                        ja not_in_range
+    25 00000020 881E                        mov [esi], bl
+    26 00000022 46                          inc esi
+    27 00000023 EBEC                        jmp main_loop
+    28                                  
+    29                                  not_in_range:
+    30 00000025 EBEA                        jmp main_loop
+    31                                  
+    32                                  fin:
+    33 00000027 8B4508                      mov eax, [ebp + 8]
+    34 0000002A 881E                        mov [esi], bl
+    35                                  
+    36 0000002C 5E                          pop esi
+    37 0000002D 5B                          pop ebx
+    38                                  
+    39 0000002E 5D                          pop ebp
+    40 0000002F C3                          ret

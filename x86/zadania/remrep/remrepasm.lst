@@ -1,0 +1,70 @@
+     1                                  section .text
+     2                                      global remrepasm
+     3                                  
+     4                                  remrepasm:
+     5                                  
+     6 00000000 55                          push ebp
+     7 00000001 89E5                        mov ebp, esp
+     8                                  
+     9 00000003 53                          push ebx ; będę używać do przekazywania bajtów
+    10 00000004 56                          push esi ; będę używać jako pointer zapisujący
+    11 00000005 57                          push edi
+    12                                  
+    13 00000006 8B4508                      mov eax, [ebp + 8] ; pointer na stringa (odczytujący)
+    14 00000009 8B7508                      mov esi, [ebp + 8] ; pointer na stringa (zapisujący)
+    15 0000000C BF00000000                  mov edi, 0 ; indeks potrzebny do trackowania ostatnio przyjętej pozycji dla nadpisania bh.
+    16 00000011 B700                        mov bh, 0
+    17                                  
+    18                                  first_letter:
+    19 00000013 8A18                        mov bl, [eax] ; załaduj bajt do bl
+    20 00000015 40                          inc eax ; inkrementuj wskaźnik
+    21 00000016 84DB                        test bl, bl ; sprawdź czy nullptr
+    22 00000018 7434                        jz fin ; jak tak to skończ program
+    23 0000001A 47                          inc edi ; inkrementuj pointer na znak (kolejny znak będzie na miejscu początek + 1)
+    24 0000001B 88DF                        mov bh, bl ; kod dla pierwszej litery w podanym string
+    25 0000001D 883E                        mov [esi], bh ; zapisz pierwszą występującą nową literę
+    26 0000001F 46                          inc esi ; inkrementuj wskaźnik zapisujący
+    27                                  
+    28                                  letter_repetition:
+    29 00000020 8A18                        mov bl, [eax] ; nowy bajt do bl
+    30 00000022 40                          inc eax ; inkrementacja wskaźnika
+    31 00000023 84DB                        test bl, bl ; sprawdzenie czy nullptr
+    32 00000025 740B                        jz try_new_letter ; jak tak, spróbuj wziąć nową literę / znak
+    33 00000027 38FB                        cmp bl, bh ; sprawdź, czy jest to znak analizowany
+    34 00000029 7502                        jne save_letter ; jak nie to zachowaj ten znak
+    35 0000002B EBF3                        jmp letter_repetition ; w innym przypadku pomiń ten znak (powtórzenie)
+    36                                  
+    37                                  save_letter:
+    38 0000002D 881E                        mov [esi], bl ; zapisywanie znaku w miejscu wskazywanym przez esi
+    39 0000002F 46                          inc esi
+    40 00000030 EBEE                        jmp letter_repetition
+    41                                  
+    42                                  try_new_letter:
+    43 00000032 48                          dec eax
+    44 00000033 881E                        mov [esi], bl
+    45 00000035 8B4508                      mov eax, [ebp + 8] ; powrót do początku
+    46 00000038 8B7508                      mov esi, [ebp + 8] ; powrót do początku
+    47 0000003B 01FE                        add esi, edi ; dodanie, aby wskazać na nowy znak
+    48 0000003D 01F8                        add eax, edi ; to samo.
+    49 0000003F 8A18                        mov bl, [eax] ; nowy bajt
+    50 00000041 40                          inc eax ; inkrementuj wskaźnik
+    51 00000042 84DB                        test bl, bl ; sprawdź, czy nullptr
+    52 00000044 7408                        jz fin ; jak tak to zakończ
+    53 00000046 88DF                        mov bh, bl ; zmień znak w bh
+    54 00000048 883E                        mov [esi], bh ; załaduj do aktualnego miejsca wskazanego przez esi bajt bh.
+    55 0000004A 46                          inc esi ; inkrementuj esi
+    56 0000004B 47                          inc edi ; inkrementuj edi
+    57 0000004C EBD2                        jmp letter_repetition
+    58                                  
+    59                                  
+    60                                  fin:
+    61 0000004E 48                          dec eax
+    62 0000004F 881E                        mov [esi], bl
+    63 00000051 8B4508                      mov eax, [ebp + 8]
+    64                                  
+    65 00000054 5F                          pop edi
+    66 00000055 5E                          pop esi
+    67 00000056 5B                          pop ebx
+    68                                  
+    69 00000057 5D                          pop ebp
+    70 00000058 C3                          ret

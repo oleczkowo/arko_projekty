@@ -1,0 +1,54 @@
+     1                                  section .text
+     2                                      global rmnthasm
+     3                                  
+     4                                      ; plan na program: stworzenie countera i sprawdzanie, czy counter = input int. Jeżeli tak, usuwamy znak na tym miejscu.
+     5                                  
+     6                                  rmnthasm:
+     7 00000000 55                          push ebp
+     8 00000001 89E5                        mov ebp, esp
+     9                                  
+    10 00000003 53                          push ebx
+    11 00000004 56                          push esi
+    12                                  
+    13 00000005 8B4508                      mov eax, [ebp + 8] ; str read pointer
+    14 00000008 8B7508                      mov esi, [ebp + 8] ; str write pointer
+    15 0000000B 8A4D0C                      mov cl, [ebp + 12] ; int
+    16 0000000E B500                        mov ch, 0 ;counter
+    17                                  
+    18                                  start_loop:
+    19 00000010 8A10                        mov dl, [eax] ; wrzuć aktualny bajt do dl
+    20 00000012 FEC5                        inc ch
+    21 00000014 40                          inc eax ; inkrementuj wskaźnik eax
+    22 00000015 84D2                        test dl, dl ; sprawdź, czy dl = 0.
+    23 00000017 740F                        jz fin
+    24                                  
+    25 00000019 38CD                        cmp ch, cl ; sprawdź, czy counter = int
+    26 0000001B 7407                        je delete_char ; jak tak, usuń znak
+    27                                  
+    28 0000001D 88D3                        mov bl, dl ; jak nie, przerzuć znak z dl do bl
+    29 0000001F 881E                        mov [esi], bl ; zapisz znak z bl na miejscu wskazanym przez esi
+    30 00000021 46                          inc esi ; inkrementuj wskaznik zapisujacy stringa
+    31 00000022 EBEC                        jmp start_loop ; wroc do loopa
+    32                                  
+    33                                  delete_char:
+    34 00000024 B500                        mov ch, 0
+    35 00000026 EBE8                        jmp start_loop
+    36                                  
+    37                                  fin:
+    38 00000028 48                          dec eax
+    39 00000029 88D3                        mov bl, dl ; jak nie, przerzuć znak z dl do bl
+    40 0000002B 881E                        mov [esi], bl ; zapisz znak z bl na miejscu wskazanym przez esi
+    41 0000002D 8B4508                      mov eax, [ebp + 8]
+    42                                  
+    43 00000030 5E                          pop esi
+    44 00000031 5B                          pop ebx
+    45                                  
+    46 00000032 5D                          pop ebp
+    47 00000033 C3                          ret
+    48                                  
+    49                                  
+    50                                  
+    51                                  
+    52                                  
+    53                                  
+    54                                  

@@ -1,0 +1,37 @@
+     1                                  section .text
+     2                                      global getdec
+     3                                  
+     4                                  getdec:
+     5 00000000 55                          push ebp
+     6 00000001 89E5                        mov ebp, esp
+     7 00000003 8B4D08                      mov ecx, [ebp + 8]
+     8 00000006 31D2                        xor edx, edx
+     9                                  
+    10                                  findnum:
+    11 00000008 8A11                        mov dl, [ecx]
+    12 0000000A 41                          inc ecx
+    13 0000000B 84D2                        test dl, dl
+    14 0000000D 7426                        jz fin
+    15 0000000F 80FA30                      cmp dl, '0'
+    16 00000012 72F4                        jb findnum
+    17 00000014 80FA39                      cmp dl, '9'
+    18 00000017 77EF                        ja findnum
+    19 00000019 31C0                        xor eax, eax
+    20                                  
+    21                                  num_seq:
+    22 0000001B 8D0480                      lea eax, [eax + eax*4]
+    23 0000001E 8D4442D0                    lea eax, [eax*2 + edx - '0']
+    24 00000022 8A11                        mov dl, [ecx]
+    25 00000024 41                          inc ecx
+    26 00000025 84D2                        test dl, dl
+    27 00000027 740C                        jz fin
+    28 00000029 80FA30                      cmp dl, '0'
+    29 0000002C 7207                        jb fin
+    30 0000002E 80FA39                      cmp dl, '9'
+    31 00000031 7702                        ja fin
+    32 00000033 EBE6                        jmp num_seq
+    33                                  
+    34                                  
+    35                                  fin:
+    36 00000035 5D                          pop ebp
+    37 00000036 C3                          ret

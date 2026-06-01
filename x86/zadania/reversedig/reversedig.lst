@@ -1,0 +1,94 @@
+     1                                  section .text
+     2                                      global reversedig
+     3                                  reversedig:
+     4 00000000 55                          push ebp
+     5 00000001 89E5                        mov ebp, esp
+     6                                  
+     7 00000003 56                          push esi   ;reader from back
+     8 00000004 57                          push edi
+     9 00000005 53                          push ebx
+    10                                  
+    11 00000006 8B4508                      mov eax, [ebp + 8] ;reader
+    12 00000009 B100                        mov cl, 0 ;couter of digit
+    13 0000000B B500                        mov ch, 0 ;couter of signs
+    14                                  
+    15                                  count:
+    16 0000000D 8A18                        mov bl, [eax]
+    17 0000000F 40                          inc eax
+    18                                  
+    19 00000010 84DB                        test bl, bl
+    20 00000012 7410                        jz reset
+    21                                  
+    22 00000014 FEC5                        inc ch
+    23                                  
+    24 00000016 80FB30                      cmp bl, '0'
+    25 00000019 72F2                        jb count
+    26                                  
+    27 0000001B 80FB39                      cmp bl, '9'
+    28 0000001E 7FED                        jg count
+    29                                  
+    30 00000020 FEC1                        inc cl
+    31 00000022 EBE9                        jmp count
+    32                                  
+    33                                  reset:
+    34 00000024 8B7508                      mov esi, [ebp + 8]
+    35 00000027 0FB6FD                      movzx edi, ch
+    36 0000002A 01FE                        add esi, edi        ;set esi to nullpointer
+    37 0000002C 8B4508                      mov eax, [ebp + 8]  ;reset eax
+    38                                  
+    39                                  start:
+    40 0000002F 8A18                        mov bl, [eax]
+    41 00000031 40                          inc eax
+    42                                  
+    43 00000032 80F901                      cmp cl, 1
+    44 00000035 762C                        jbe write
+    45                                  
+    46 00000037 80FB30                      cmp bl, '0'
+    47 0000003A 721D                        jb write_front
+    48                                  
+    49 0000003C 80FB39                      cmp bl, '9'
+    50 0000003F 7F18                        jg write_front
+    51                                                      ;found dig from front
+    52                                  start_back:
+    53 00000041 8A3E                        mov bh, [esi]
+    54 00000043 4E                          dec esi
+    55                                  
+    56 00000044 80FF30                      cmp bh, '0'
+    57 00000047 7215                        jb write_back
+    58                                  
+    59 00000049 80FF39                      cmp bh, '9'
+    60 0000004C 7F10                        jg write_back
+    61                                  
+    62                                                      ;found 2 digits
+    63                                  switch:
+    64 0000004E 8878FF                      mov [eax - 1], bh
+    65 00000051 885E01                      mov [esi + 1], bl
+    66 00000054 80E902                      sub cl, 2
+    67 00000057 EBD6                        jmp start
+    68                                  
+    69                                  write_front:
+    70 00000059 8858FF                      mov [eax - 1], bl
+    71 0000005C EBD1                        jmp start
+    72                                  
+    73                                  write_back:
+    74 0000005E 887E01                      mov [esi + 1], bh
+    75 00000061 EBDE                        jmp start_back
+    76                                  
+    77                                  write:
+    78 00000063 48                          dec eax
+    79                                  
+    80                                  laset_part:
+    81 00000064 8A18                        mov bl, [eax]
+    82 00000066 40                          inc eax
+    83 00000067 8858FF                      mov [eax - 1], bl
+    84 0000006A 84DB                        test bl, bl
+    85 0000006C 7402                        jz end
+    86 0000006E EBF4                        jmp laset_part
+    87                                  
+    88                                  end:
+    89 00000070 8B4508                      mov eax, [ebp + 8]
+    90 00000073 5B                          pop ebx
+    91 00000074 5F                          pop edi
+    92 00000075 5E                          pop esi
+    93 00000076 5D                          pop ebp
+    94 00000077 C3                          ret
